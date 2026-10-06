@@ -23,12 +23,38 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze
 
-      - name: Build unsigned iOS IPA
-        run: flutter build ipa --release --no-codesign
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -e
+
+          APP_PATH="build/ios/iphoneos/Runner.app"
+          IPA_DIR="build/ios/ipa"
+          STAGING_DIR="$IPA_DIR/staging"
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "ERROR: Runner.app was not created at $APP_PATH"
+            exit 1
+          fi
+
+          rm -rf "$STAGING_DIR"
+          mkdir -p "$STAGING_DIR/Payload"
+          mkdir -p "$IPA_DIR"
+
+          cp -R "$APP_PATH" "$STAGING_DIR/Payload/Runner.app"
+
+          cd "$STAGING_DIR"
+          zip -qry "../Gym-for-Teenage.ipa" Payload
+
+          echo "Created:"
+          ls -lh "../Gym-for-Teenage.ipa"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: Gym-for-Teenage-unsigned-IPA
-          path: build/ios/ipa/*.ipa
+          path: build/ios/ipa/Gym-for-Teenage.ipa
           if-no-files-found: error
