@@ -1,20 +1,35 @@
-name: Build iOS IPA
+name: Build signed iOS IPA
 
 on:
   workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build number (optional, e.g. 2)'
+        required: false
+        default: ''
+      distribution:
+        description: 'Signing profile type'
+        required: true
+        type: choice
+        options:
+          - ad-hoc
+          - app-store
+        default: ad-hoc
 
 jobs:
   build-ios:
     runs-on: macos-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Flutter pub get
         run: flutter pub get
@@ -22,14 +37,219 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze
 
-      - name: Build unsigned iOS archive
-        run: flutter build ios --release --no-codesign
+      - name: Prepare signing
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          set -euo pipefail
 
-      - name: Create IPA
-        run: flutter build ipa --release --no-codesign
+          if [ -z "${IOS_CERTIFICATE:-}" ] || [ -z "${IOS_PROVISIONING_PROFILE:-}" ]; then
+            echo "::error::Missing IOS_CERTIFICATE or IOS_PROVISIONING_PROFILE GitHub Secret."
+            exit 1
+          fi
 
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v5
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/gym-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          echo "$IOS_PROVISIONING_PROFILE" | base64 --decode > "$PROFILE_PATH"
+          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+
+          TEAM_ID="$(plutil -extract TeamIdentifier.0 raw -o - "$PROFILE_PLIST")"
+          PROFILE_NAME="$(plutil -extract Name raw -o - "$PROFILE_PLIST")"
+          APP_ID="$(plutil -extract Entitlements.application-identifier raw -o - "$PROFILE_PLIST")"
+          PROFILE_BUNDLE_ID="${APP_ID#"$TEAM_ID".}"
+          PROFILE_UUID="$(plutil -extract UUID raw -o - "$PROFILE_PLIST")"
+
+          if [ "$PROFILE_BUNDLE_ID" != "com.example.gymLog" ]; then
+            echo "::error::Provisioning profile is for '$PROFILE_BUNDLE_ID', but Gym for Teenage requires 'com.example.gymLog'."
+            exit 1
+          fi
+
+          if [ "${{ inputs.distribution }}" = "ad-hoc" ]; then
+            PROVISIONS_DEVICES="$(plutil -extract ProvisionedDevices xml1 -o /dev/null "$PROFILE_PLIST" >/dev/null 2>&1 && echo yes || echo no)"
+            GET_TASK_ALLOW="$(plutil -extract Entitlements.get-task-allow raw -o - "$PROFILE_PLIST" 2>/dev/null || echo false)"
+            if [ "$PROVISIONS_DEVICES" != "yes" ] || [ "$GET_TASK_ALLOW" = "true" ]; then
+              echo "::error::The selected profile is not a valid Ad Hoc distribution profile."
+              exit 1
+            fi
+            EXPORT_METHOD=ad-hoc
+          else
+            EXPORT_METHOD=app-store
+          fi
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "$IOS_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$IOS_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          IDENTITIES="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")"
+          echo "$IDENTITIES"
+          if ! printf '%s\n' "$IDENTITIES" | grep -q "Apple Distribution"; then
+            echo "::error::The certificate does not contain an Apple Distribution signing identity."
+            exit 1
+          fi
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          {
+            echo "KEYCHAIN_PATH=$KEYCHAIN_PATH"
+            echo "DEVELOPMENT_TEAM=$TEAM_ID"
+            echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME"
+            echo "PROFILE_BUNDLE_ID=$PROFILE_BUNDLE_ID"
+            echo "PROFILE_UUID=$PROFILE_UUID"
+            echo "EXPORT_METHOD=$EXPORT_METHOD"
+            echo "CODE_SIGN_IDENTITY=Apple Distribution"
+          } >> "$GITHUB_ENV"
+
+      - name: Build Flutter iOS
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BUILD_NUMBER" ]; then
+            flutter build ios --release --no-codesign --build-number="$BUILD_NUMBER"
+          else
+            flutter build ios --release --no-codesign
+          fi
+
+      - name: Apply manual signing
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json
+          import os
+          import subprocess
+
+          project = 'ios/Runner.xcodeproj/project.pbxproj'
+          raw = subprocess.check_output(['plutil', '-convert', 'json', '-o', '-', project])
+          data = json.loads(raw)
+          objects = data['objects']
+
+          bundle_id = os.environ['PROFILE_BUNDLE_ID']
+          settings = {
+              'CODE_SIGN_STYLE': 'Manual',
+              'DEVELOPMENT_TEAM': os.environ['DEVELOPMENT_TEAM'],
+              'PROVISIONING_PROFILE_SPECIFIER': os.environ['PROVISIONING_PROFILE_NAME'],
+              'CODE_SIGN_IDENTITY': os.environ['CODE_SIGN_IDENTITY'],
+          }
+
+          found = False
+          for obj in objects.values():
+              if obj.get('isa') != 'PBXNativeTarget':
+                  continue
+              if obj.get('productType') != 'com.apple.product-type.application':
+                  continue
+
+              config_list = objects[obj['buildConfigurationList']]
+              configs = [objects[x] for x in config_list['buildConfigurations']]
+              ids = {
+                  c.get('buildSettings', {}).get('PRODUCT_BUNDLE_IDENTIFIER', '')
+                  for c in configs
+              }
+
+              if bundle_id not in ids:
+                  continue
+
+              found = True
+              for config in configs:
+                  build = config.setdefault('buildSettings', {})
+                  for key in list(build):
+                      if key.split('[')[0] in settings:
+                          del build[key]
+                  build.update(settings)
+
+              print('Signing target:', obj.get('name'))
+
+          if not found:
+              raise SystemExit(
+                  f"No application target with PRODUCT_BUNDLE_IDENTIFIER={bundle_id}"
+              )
+
+          subprocess.run(
+              ['plutil', '-convert', 'xml1', '-o', project, '-'],
+              input=json.dumps(data).encode(),
+              check=True,
+          )
+          PY
+
+      - name: Archive
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          mkdir -p build
+
+          VERSION_ARGS=()
+          if [ -n "$BUILD_NUMBER" ]; then
+            VERSION_ARGS+=("CURRENT_PROJECT_VERSION=$BUILD_NUMBER")
+          fi
+
+          xcodebuild \
+            -project ios/Runner.xcodeproj \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$GITHUB_WORKSPACE/build/GymForTeenage.xcarchive" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            "${VERSION_ARGS[@]}" \
+            archive
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>$EXPORT_METHOD</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>teamID</key>
+              <string>$DEVELOPMENT_TEAM</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.example.gymLog</key>
+                  <string>$PROVISIONING_PROFILE_NAME</string>
+              </dict>
+              <key>manageAppVersionAndBuildNumber</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath build/GymForTeenage.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/export
+
+          mv build/export/*.ipa build/Gym-for-Teenage.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
         with:
-          name: gym-for-teenage-unsigned
-          path: build/ios/ipa/*.ipa
+          name: Gym-for-Teenage-IPA
+          path: build/Gym-for-Teenage.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Cleanup signing
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
