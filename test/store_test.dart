@@ -96,9 +96,7 @@ void main() {
     final workout = workouts.first;
     first
       ..replaceExercise(workout, 0, pullups)
-      ..setSkipped(workout, workout.exercises[1], true)
-      ..setRestSeconds(120)
-      ..setAutoRest(false);
+      ..setSkipped(workout, workout.exercises[1], true);
     await first.flush();
 
     expect(first.exerciseAt(workout, 0).id, 'pullups');
@@ -110,8 +108,6 @@ void main() {
     expect(second.exerciseAt(workout, 0).id, 'pullups');
     expect(second.hasReplacement(workout, 0), isTrue);
     expect(second.isSkipped(workout, workout.exercises[1]), isTrue);
-    expect(second.restSeconds, 120);
-    expect(second.autoRest, isFalse);
 
     second.resetReplacement(workout, 0);
     expect(second.exerciseAt(workout, 0).id, workout.exercises[0].id);
@@ -169,8 +165,5 @@ void main() {
     expect(store.totalSessions, 1);
     expect(store.sessions.first.workoutId, 'B');
     expect(store.sessions.first.volume, 1500);
-    expect(store.restSeconds, 90);
-    expect(store.autoRest, isTrue);
-    expect(store.haptics, isTrue);
   });
 }

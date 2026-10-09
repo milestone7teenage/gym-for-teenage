@@ -1,7 +1,4 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -347,10 +344,6 @@ class ExercisePage extends StatefulWidget {
 }
 
 class _ExercisePageState extends State<ExercisePage> {
-  Timer? _timer;
-  int _seconds = 0;
-  int _restTotal = 90;
-  bool _paused = false;
   late List<TextEditingController> _weights;
   late List<TextEditingController> _reps;
   late List<TextEditingController> _notes;
@@ -359,7 +352,6 @@ class _ExercisePageState extends State<ExercisePage> {
   @override
   void initState() {
     super.initState();
-    _restTotal = store.restSeconds;
     _makeControllers();
   }
 
@@ -395,51 +387,8 @@ class _ExercisePageState extends State<ExercisePage> {
     }
   }
 
-  void _startRest({int? seconds}) {
-    _timer?.cancel();
-    _restTotal = seconds ?? store.restSeconds;
-    setState(() {
-      _seconds = _restTotal;
-      _paused = false;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      if (_seconds <= 1) {
-        timer.cancel();
-        setState(() {
-          _seconds = 0;
-          _paused = false;
-        });
-        if (store.haptics) {
-          HapticFeedback.mediumImpact();
-        }
-      } else {
-        setState(() => _seconds -= 1);
-      }
-    });
-  }
-
-  void _togglePause() {
-    if (_seconds <= 0) return;
-    if (_paused) {
-      _startRest(seconds: _seconds);
-    } else {
-      _timer?.cancel();
-      setState(() => _paused = true);
-    }
-  }
-
-  void _closeRest() {
-    _timer?.cancel();
-    setState(() {
-      _seconds = 0;
-      _paused = false;
-    });
-  }
-
   @override
   void dispose() {
-    _timer?.cancel();
     for (final c in _weights) {
       c.dispose();
     }
@@ -574,12 +523,6 @@ class _ExercisePageState extends State<ExercisePage> {
                   ],
                 ),
               ),
-              _RoundIconButton(
-                icon: Icons.timer_outlined,
-                onTap: _seconds > 0
-                    ? _togglePause
-                    : () => _startRest(),
-              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -601,7 +544,6 @@ class _ExercisePageState extends State<ExercisePage> {
                   store.toggleDone(
                       widget.workout.id, widget.exercise.id, index);
                   setState(() {});
-                  if (sets[index].done && store.autoRest) _startRest();
                 },
                 onWeightChanged: (value) {
                   final parsed = double.tryParse(value.replaceAll(',', '.'));
@@ -671,19 +613,6 @@ class _ExercisePageState extends State<ExercisePage> {
               ),
             ),
           ),
-          if (_seconds > 0) ...[
-            const SizedBox(height: 12),
-            RestCard(
-              seconds: _seconds,
-              total: _restTotal,
-              paused: _paused,
-              onMinus: () => setState(() =>
-                  _seconds = (_seconds - 15).clamp(1, 999)),
-              onPlus: () => setState(() => _seconds += 15),
-              onTogglePause: _togglePause,
-              onClose: _closeRest,
-            ),
-          ],
           const SizedBox(height: 17),
           Row(
             children: [
@@ -964,18 +893,26 @@ class SetRow extends StatelessWidget {
               ),
               IconButton(
                 tooltip: 'Готово',
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                 padding: EdgeInsets.zero,
                 onPressed: onDone,
                 icon: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 140),
-                  child: Icon(
-                    set.done
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
+                  child: Container(
                     key: ValueKey(set.done),
-                    color: set.done ? green : textMuted,
-                    size: 26,
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: set.done ? green : Colors.transparent,
+                      border: Border.all(
+                        color: set.done ? green : textMuted,
+                        width: 2.5,
+                      ),
+                    ),
+                    child: set.done
+                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                        : null,
                   ),
                 ),
               ),
@@ -1155,30 +1092,6 @@ class RestCard extends StatelessWidget {
             icon: const Icon(Icons.close_rounded, size: 20, color: textMuted),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RoundIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _RoundIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: panel2,
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(17),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Icon(icon, color: purpleSoft),
-        ),
       ),
     );
   }
@@ -1559,3 +1472,4 @@ class ReplaceSheet extends StatelessWidget {
     );
   }
 }
+

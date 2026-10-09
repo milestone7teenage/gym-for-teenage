@@ -162,6 +162,7 @@ class NumericField extends StatelessWidget {
   final String suffix;
   final bool integer;
   final ValueChanged<String> onChanged;
+  final VoidCallback? onEditingComplete;
 
   const NumericField({
     super.key,
@@ -169,6 +170,7 @@ class NumericField extends StatelessWidget {
     required this.suffix,
     required this.onChanged,
     this.integer = false,
+    this.onEditingComplete,
   });
 
   @override
@@ -184,6 +186,8 @@ class NumericField extends StatelessWidget {
         ),
       ],
       onChanged: onChanged,
+      onEditingComplete: onEditingComplete,
+      textInputAction: TextInputAction.done,
       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
       decoration: InputDecoration(
         suffixText: suffix,

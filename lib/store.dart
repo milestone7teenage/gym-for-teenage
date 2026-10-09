@@ -22,10 +22,6 @@ class GymStore extends ChangeNotifier {
   final Set<String> _skipped = {};
   final Map<String, String> _overrides = {};
 
-  int restSeconds = 90;
-  bool autoRest = true;
-  bool haptics = true;
-
   Timer? _saveDebounce;
   Future<void> _pendingSave = Future<void>.value();
   bool ready = false;
@@ -78,19 +74,6 @@ class GymStore extends ChangeNotifier {
       ..clear()
       ..addAll(((root['overrides'] as Map<String, dynamic>?) ?? const {})
           .map((k, v) => MapEntry(k, v.toString())));
-
-    final settings = root['settings'] as Map<String, dynamic>?;
-    if (settings != null) {
-      restSeconds = _clampRest((settings['rest'] as num?)?.toInt() ?? restSeconds);
-      autoRest = settings['autoRest'] as bool? ?? autoRest;
-      haptics = settings['haptics'] as bool? ?? haptics;
-    }
-  }
-
-  static int _clampRest(int value) {
-    if (value < 15) return 15;
-    if (value > 600) return 600;
-    return value;
   }
 
   String key(String workoutId, String exerciseId) => '$workoutId::$exerciseId';
@@ -151,9 +134,19 @@ class GymStore extends ChangeNotifier {
   }
 
   void updateWeight(String workoutId, String exerciseId, int index, double value) {
-    setsFor(workoutId, exerciseId)[index].weight = value;
+    final sets = setsFor(workoutId, exerciseId);
+    final set = sets[index];
+    set.weight = value;
+    set.weightManuallySet = true;
     _queueSave();
     notifyListeners();
+
+    // Propagate to subsequent sets that haven't been manually set
+    for (int i = index + 1; i < sets.length; i++) {
+      if (!sets[i].weightManuallySet) {
+        sets[i].weight = value;
+      }
+    }
   }
 
   void updateReps(String workoutId, String exerciseId, int index, int value) {
@@ -260,26 +253,6 @@ class GymStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------- settings
-
-  void setRestSeconds(int value) {
-    restSeconds = _clampRest(value);
-    _queueSave();
-    notifyListeners();
-  }
-
-  void setAutoRest(bool value) {
-    autoRest = value;
-    _queueSave();
-    notifyListeners();
-  }
-
-  void setHaptics(bool value) {
-    haptics = value;
-    _queueSave();
-    notifyListeners();
-  }
-
   // ---------------------------------------------------------------- persistence
 
   Map<String, dynamic> _encode() => {
@@ -291,11 +264,6 @@ class GymStore extends ChangeNotifier {
         'sessions': sessions.map((e) => e.toJson()).toList(),
         'skipped': _skipped.toList(),
         'overrides': _overrides,
-        'settings': {
-          'rest': restSeconds,
-          'autoRest': autoRest,
-          'haptics': haptics,
-        },
       };
 
   String exportJson() => jsonEncode(_encode());

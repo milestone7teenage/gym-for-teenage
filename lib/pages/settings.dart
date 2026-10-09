@@ -3,11 +3,10 @@ import 'package:flutter/services.dart';
 
 import '../store.dart';
 import '../theme.dart';
+import 'archive.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
-
-  static const _restOptions = [60, 90, 120, 150, 180];
 
   Future<void> _clear(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -141,123 +140,21 @@ class SettingsPage extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         _SettingsSection(
-          title: 'ОТДЫХ',
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Длительность таймера',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Таймер стартует после отметки выполненного подхода.',
-                    style: TextStyle(
-                      color: textMuted,
-                      fontSize: 10,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 7,
-                    runSpacing: 7,
-                    children: [
-                      for (final seconds in _restOptions)
-                        _RestChip(
-                          seconds: seconds,
-                          selected: store.restSeconds == seconds,
-                          onTap: () => store.setRestSeconds(seconds),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Свой вариант',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '${store.restSeconds} сек',
-                        style: const TextStyle(
-                          color: purpleSoft,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: store.restSeconds.toDouble(),
-                    min: 30,
-                    max: 300,
-                    divisions: 9,
-                    onChanged: (v) => store.setRestSeconds(v.round()),
-                  ),
-                ],
-              ),
-            ),
-            _SwitchRow(
-              icon: Icons.play_circle_outline_rounded,
-              title: 'Запускать автоматически',
-              subtitle: 'Отсчёт стартует сразу после отметки подхода.',
-              value: store.autoRest,
-              onChanged: store.setAutoRest,
-            ),
-            _SwitchRow(
-              icon: Icons.vibration_rounded,
-              title: 'Вибро-отклик в конце',
-              subtitle: 'Лёгкая вибрация, когда отдых закончился.',
-              value: store.haptics,
-              onChanged: store.setHaptics,
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        _SettingsSection(
-          title: 'ТРЕНИРОВКИ',
-          children: [
-            _SettingsRow(
-              icon: Icons.repeat_rounded,
-              title: 'Подходы по умолчанию',
-              subtitle:
-                  'Каждое новое упражнение начинается ровно с двух подходов.',
-              trailing: const Text(
-                '2',
-                style: TextStyle(
-                  color: purpleSoft,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            _SettingsRow(
-              icon: Icons.schedule_rounded,
-              title: 'Расписание',
-              subtitle: 'A — вторник, B — четверг, C — суббота.',
-              trailing: const Icon(
-                Icons.calendar_month_rounded,
-                color: purpleSoft,
-                size: 19,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        _SettingsSection(
           title: 'ДАННЫЕ',
           children: [
+            _SettingsRow(
+              icon: Icons.archive_rounded,
+              title: 'Архив прогресса',
+              subtitle: 'Фото прогресса по упражнениям.',
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                color: textMuted,
+              ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ArchivePage()),
+              ),
+            ),
             _SettingsRow(
               icon: Icons.phone_android_rounded,
               title: 'Локальное хранилище',
@@ -315,112 +212,6 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _RestChip extends StatelessWidget {
-  final int seconds;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RestChip({
-    required this.seconds,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? const Color(0xFF241C40) : panel2,
-      borderRadius: BorderRadius.circular(13),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(13),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-              color: selected ? purple : border,
-            ),
-          ),
-          child: Text(
-            '$seconds с',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              color: selected ? purpleSoft : textMuted,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SwitchRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFF211B38),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(icon, color: purpleSoft, size: 19),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: textMuted,
-                    fontSize: 10,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
     );
   }
 }

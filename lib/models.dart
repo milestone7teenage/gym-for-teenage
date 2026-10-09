@@ -35,12 +35,14 @@ class SetEntry {
   int reps;
   bool done;
   String note;
+  bool weightManuallySet;
 
   SetEntry({
     this.weight = 20,
     this.reps = 10,
     this.done = false,
     this.note = '',
+    this.weightManuallySet = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -48,6 +50,7 @@ class SetEntry {
         'reps': reps,
         'done': done,
         if (note.isNotEmpty) 'note': note,
+        if (weightManuallySet) 'weightManuallySet': true,
       };
 
   factory SetEntry.fromJson(Map<String, dynamic> json) => SetEntry(
@@ -55,6 +58,7 @@ class SetEntry {
         reps: (json['reps'] as num?)?.toInt() ?? 10,
         done: json['done'] == true,
         note: json['note'] as String? ?? '',
+        weightManuallySet: json['weightManuallySet'] == true,
       );
 }
 
