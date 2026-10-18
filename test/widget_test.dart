@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_log/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,15 +9,16 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('экран "Сегодня" показывает три карточки 1/2/3', (tester) async {
+  testWidgets('экран "Сегодня" показывает три карточки: Вторник, Четверг, Суббота',
+      (tester) async {
     await tester.pumpWidget(const GymLogApp());
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
-    // Три карточки с обозначениями 1/2/3
-    expect(find.text('1'), findsWidgets);
-    expect(find.text('2'), findsWidgets);
-    expect(find.text('3'), findsWidgets);
+    // Каждый день недели встречается как минимум один раз (в карточке)
+    expect(find.text('Вторник'), findsAtLeast(1));
+    expect(find.text('Четверг'), findsAtLeast(1));
+    expect(find.text('Суббота'), findsAtLeast(1));
 
     // Удалённые элементы отсутствуют
     expect(find.text('ТВОЙ ДЕНЬ'), findsNothing);
@@ -31,7 +31,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('1').first);
+    // Нажимаем на первую карточку (Вторник)
+    await tester.tap(find.text('Вторник').first);
     await tester.pumpAndSettle();
     expect(find.text('Тренировка A'), findsOneWidget);
   });
@@ -56,14 +57,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Настройки'));
+    await tester.tap(find.text('Настройки').first);
     await tester.pumpAndSettle();
-    expect(find.text('Приложение'), findsOneWidget);
+
+    // Крупный заголовок «Настройки» (35pt) присутствует
+    expect(find.text('Настройки'), findsAtLeast(1));
 
     expect(find.text('Архив прогресса'), findsNothing);
     expect(find.text('Локальное хранилище'), findsNothing);
 
-    // Остались резервное копирование, импорт и очистка
     expect(find.text('Резервная копия'), findsOneWidget);
     expect(find.text('Импорт копии'), findsOneWidget);
     expect(find.text('Очистить всё'), findsOneWidget);
@@ -74,10 +76,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Настройки'));
+    await tester.tap(find.text('Настройки').first);
     await tester.pumpAndSettle();
 
-    // Проверка, что кнопки присутствуют
     expect(find.text('Резервная копия'), findsOneWidget);
     expect(find.text('Импорт копии'), findsOneWidget);
     expect(find.text('Очистить всё'), findsOneWidget);

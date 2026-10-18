@@ -16,7 +16,7 @@ class HomePage extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 25, 20, 32),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverList.separated(
             itemCount: workouts.length,
             separatorBuilder: (_, _) => const SizedBox(height: 9),
@@ -45,19 +45,6 @@ class _WorkoutCard extends StatelessWidget {
 
   const _WorkoutCard({required this.workout, required this.onTap});
 
-  String get _label {
-    switch (workout.id) {
-      case 'A':
-        return '1';
-      case 'B':
-        return '2';
-      case 'C':
-        return '3';
-      default:
-        return workout.id;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -83,7 +70,7 @@ class _WorkoutCard extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  _label,
+                  workout.day,
                   style: const TextStyle(
                     color: purpleSoft,
                     fontSize: 18,
@@ -93,26 +80,12 @@ class _WorkoutCard extends StatelessWidget {
               ),
               const SizedBox(width: 13),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      workout.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      workout.day,
-                      style: const TextStyle(
-                        color: textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  workout.day,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               const Icon(Icons.chevron_right_rounded, color: textMuted),

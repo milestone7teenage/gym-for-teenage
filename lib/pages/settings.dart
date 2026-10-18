@@ -130,7 +130,7 @@ class SettingsPage extends StatelessWidget {
         ),
         const SizedBox(height: 7),
         const Text(
-          'Приложение',
+          'Настройки',
           style: TextStyle(
             fontSize: 35,
             fontWeight: FontWeight.w900,
@@ -140,7 +140,7 @@ class SettingsPage extends StatelessWidget {
         const SizedBox(height: 20),
         _SettingsSection(
           title: 'ДАННЫЕ',
-children: [
+          children: [
             _SettingsRow(
               icon: Icons.copy_all_rounded,
               title: 'Резервная копия',
