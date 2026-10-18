@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../store.dart';
 import '../theme.dart';
-import 'archive.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -141,32 +140,7 @@ class SettingsPage extends StatelessWidget {
         const SizedBox(height: 20),
         _SettingsSection(
           title: 'ДАННЫЕ',
-          children: [
-            _SettingsRow(
-              icon: Icons.archive_rounded,
-              title: 'Архив прогресса',
-              subtitle: 'Фото прогресса по упражнениям.',
-              trailing: const Icon(
-                Icons.chevron_right_rounded,
-                color: textMuted,
-              ),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ArchivePage()),
-              ),
-            ),
-            _SettingsRow(
-              icon: Icons.phone_android_rounded,
-              title: 'Локальное хранилище',
-              subtitle:
-                  'Сохраняется автоматически на устройстве: ${store.totalSessions} тренировок, '
-                  '${store.totalCompletedSets} подходов.',
-              trailing: const Icon(
-                Icons.check_circle_rounded,
-                color: green,
-                size: 21,
-              ),
-            ),
+children: [
             _SettingsRow(
               icon: Icons.copy_all_rounded,
               title: 'Резервная копия',

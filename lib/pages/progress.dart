@@ -5,6 +5,21 @@ import '../store.dart';
 import '../theme.dart';
 import '../ui.dart';
 
+/// Отображаемый номер тренировки для пользователя (1/2/3).
+/// Внутренний ID (A/B/C) используется только в логике и хранилище.
+String displayWorkoutId(String id) {
+  switch (id) {
+    case 'A':
+      return '1';
+    case 'B':
+      return '2';
+    case 'C':
+      return '3';
+    default:
+      return id;
+  }
+}
+
 class ProgressPage extends StatelessWidget {
   const ProgressPage({super.key});
 
@@ -189,14 +204,14 @@ class _ProgressWorkoutCard extends StatelessWidget {
                   color: const Color(0xFF241D40),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  workout.id,
-                  style: const TextStyle(
-                    color: purpleSoft,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+child: Text(
+                    displayWorkoutId(workout.id),
+                    style: const TextStyle(
+                      color: purpleSoft,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
               ),
               const SizedBox(width: 13),
               Expanded(

@@ -33,20 +33,19 @@ class StatsPage extends StatelessWidget {
       (m, s) => s.volume > m ? s.volume : m,
     );
 
-    final best = _bestByExercise(store.sessions);
+final best = _bestByExercise(store.sessions);
     final bestSession = sessions == 0
         ? null
         : store.sessions.fold<SessionRecord>(
             store.sessions.first,
             (a, b) => b.volume > a.volume ? b : a,
           );
-    final perExercise = _byExercise(store.sessions);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
         const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 25, 20, 7),
+          padding: EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(
             child: Text(
               'АНАЛИТИКА',
@@ -60,7 +59,7 @@ class StatsPage extends StatelessWidget {
           ),
         ),
         const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, 19),
+          padding: EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(child: ScreenTitle('Статистика')),
         ),
         SliverPadding(
@@ -97,7 +96,7 @@ class StatsPage extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 19, 20, 9),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ЧАСТОТА'),
           ),
@@ -113,7 +112,7 @@ class StatsPage extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 19, 20, 9),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ДИНАМИКА ПОСЛЕДНИХ ТРЕНИРОВОК'),
           ),
@@ -130,7 +129,7 @@ class StatsPage extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 19, 20, 9),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ЛУЧШИЕ РЕЗУЛЬТАТЫ'),
           ),
@@ -139,101 +138,6 @@ class StatsPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(
             child: _PrCard(best: best, bestSession: bestSession),
-          ),
-        ),
-        if (perExercise.isNotEmpty) ...[
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 19, 20, 9),
-            sliver: SliverToBoxAdapter(
-              child: SectionHeader(title: 'ПО УПРАЖНЕНИЯМ'),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList.separated(
-              itemCount: perExercise.take(8).length,
-              separatorBuilder: (_, _) => const SizedBox(height: 9),
-              itemBuilder: (_, index) => _ExerciseRow(stat: perExercise[index]),
-            ),
-          ),
-        ],
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 19, 20, 9),
-          sliver: SliverToBoxAdapter(
-            child: SectionHeader(title: 'ПО ТРЕНИРОВКАМ'),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-          sliver: SliverList.separated(
-            itemCount: workouts.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 9),
-            itemBuilder: (_, index) {
-              final workout = workouts[index];
-              final count =
-                  store.sessions.where((s) => s.workoutId == workout.id).length;
-              final vol = store.sessions
-                  .where((s) => s.workoutId == workout.id)
-                  .fold<double>(0, (v, s) => v + s.volume);
-              return Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: panel,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: border),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF241D40),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        workout.id,
-                        style: const TextStyle(
-                          color: purpleSoft,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            workout.name,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '$count раз • ${vol.round()} кг',
-                            style: const TextStyle(
-                              color: textMuted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      workout.day,
-                      style: const TextStyle(
-                        color: textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
           ),
         ),
       ],
@@ -270,117 +174,9 @@ class StatsPage extends StatelessWidget {
       }
     }
 
-    final list = best.values.toList()
+final list = best.values.toList()
       ..sort((a, b) => b.$2.weight.compareTo(a.$2.weight));
     return list;
-  }
-
-  /// Агрегация по упражнениям: сколько раз встречалось, сколько подходов
-  /// собрано и какой лучший подход записан.
-  static List<_ExStat> _byExercise(List<SessionRecord> sessions) {
-    final map = <String, _ExStat>{};
-    for (final session in sessions) {
-      for (final se in session.exercises) {
-        final stat = map.putIfAbsent(
-          se.exerciseId,
-          () => _ExStat(se.name),
-        );
-        stat.sessions += 1;
-        stat.sets += se.sets.length;
-        for (final set in se.sets) {
-          if (set.weight > stat.bestWeight ||
-              (set.weight == stat.bestWeight && set.reps > stat.bestReps)) {
-            stat.bestWeight = set.weight;
-            stat.bestReps = set.reps;
-          }
-        }
-      }
-    }
-    final list = map.values.toList()
-      ..sort((a, b) {
-        final bySets = b.sets.compareTo(a.sets);
-        return bySets != 0 ? bySets : b.sessions.compareTo(a.sessions);
-      });
-    return list;
-  }
-}
-
-class _ExStat {
-  final String name;
-  int sessions = 0;
-  int sets = 0;
-  double bestWeight = 0;
-  int bestReps = 0;
-
-  _ExStat(this.name);
-}
-
-class _ExerciseRow extends StatelessWidget {
-  final _ExStat stat;
-
-  const _ExerciseRow({required this.stat});
-
-  @override
-  Widget build(BuildContext context) {
-    final best = stat.bestWeight % 1 == 0
-        ? stat.bestWeight.toInt().toString()
-        : stat.bestWeight.toString();
-
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: panel,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF241D40),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.fitness_center_rounded,
-              color: purpleSoft,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stat.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${stat.sessions} раз • ${stat.sets} подходов',
-                  style: const TextStyle(
-                    color: textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '$best кг × ${stat.bestReps}',
-            style: const TextStyle(
-              color: purpleSoft,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
