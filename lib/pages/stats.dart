@@ -140,6 +140,16 @@ final best = _bestByExercise(store.sessions);
             child: _PrCard(best: best, bestSession: bestSession),
           ),
         ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: const SliverToBoxAdapter(
+            child: SectionHeader(title: 'ВООБЩЕНИЕ ВОДЫ'),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: const SliverToBoxAdapter(child: _WaterStatsCard()),
+        ),
       ],
     );
   }
@@ -511,5 +521,226 @@ class _StatCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _WaterStatsCard extends StatelessWidget {
+  const _WaterStatsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayMl = store.getWaterForDate(now);
+    final todayPortions = store.getWaterPortions(now);
+    final goal = GymStore.waterGoalMl;
+    final portionMl = GymStore.waterPortionMl;
+
+    final days = List.generate(7, (i) {
+      final d = DateTime(now.year, now.month, now.day).subtract(Duration(days: 6 - i));
+      return _DayData(
+        date: d,
+        ml: store.getWaterForDate(d),
+      );
+    });
+
+    final maxMl = days.fold<int>(0, (m, d) => d.ml > m ? d.ml : m).clamp(1, goal);
+    final history = store.waterIntakeHistory.entries
+        .toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: panel,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.water_drop_rounded, color: purpleSoft, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                '$todayMl / $goal мл',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -.4,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$todayPortions порц.',
+                style: const TextStyle(
+                  color: textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Цель: $goal мл · $portionMl мл за порцию',
+            style: const TextStyle(
+              color: textMuted,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              letterSpacing: .4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _WaterChart(days: days, maxMl: maxMl),
+          if (history.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(color: border, height: 1),
+            const SizedBox(height: 10),
+            const Text(
+              'ИСТОРИЯ',
+              style: TextStyle(
+                color: textMuted,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...history.take(10).map((e) => _WaterHistoryRow(entry: e)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DayData {
+  final DateTime date;
+  final int ml;
+
+  _DayData({required this.date, required this.ml});
+}
+
+class _WaterChart extends StatelessWidget {
+  final List<_DayData> days;
+  final int maxMl;
+
+  const _WaterChart({required this.days, required this.maxMl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (final d in days)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Tooltip(
+                  message: '${d.ml} мл',
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutCubic,
+                    height: 8 + 56 * (d.ml / maxMl),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: d.ml > 0
+                            ? [purpleSoft, purple.withValues(alpha: .35)]
+                            : [border, border],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _weekdayShort(d.date),
+                  style: const TextStyle(
+                    color: textMuted,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: .4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  static String _weekdayShort(DateTime date) {
+    const names = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+    return names[date.weekday - 1];
+  }
+}
+
+class _WaterHistoryRow extends StatelessWidget {
+  final MapEntry<String, int> entry;
+
+  const _WaterHistoryRow({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = entry.key.split('-');
+    final date = DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
+    final portions = entry.value ~/ GymStore.waterPortionMl;
+    final isToday = date.year == DateTime.now().year &&
+        date.month == DateTime.now().month &&
+        date.day == DateTime.now().day;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            _formatDate(date),
+            style: TextStyle(
+              color: isToday ? purpleSoft : textMuted,
+              fontSize: 11,
+              fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '${entry.value} мл',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.3,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$portions порц.',
+            style: const TextStyle(
+              color: textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatDate(DateTime date) {
+    const months = [
+      'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+    ];
+    final now = DateTime.now();
+    final diff = now.difference(date).inDays;
+    if (diff == 0) return 'сегодня';
+    if (diff == 1) return 'вчера';
+    return '${date.day} ${months[date.month - 1]}';
   }
 }

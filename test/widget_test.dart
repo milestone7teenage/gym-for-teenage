@@ -83,4 +83,24 @@ void main() {
     expect(find.text('Импорт копии'), findsOneWidget);
     expect(find.text('Очистить всё'), findsOneWidget);
   });
-}
+
+  testWidgets('главный экран показывает блоки веса и роста', (tester) async {
+    await tester.pumpWidget(const GymLogApp());
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('МОЙ ВЕС'), findsOneWidget);
+    expect(find.text('МОЙ РОСТ'), findsOneWidget);
+  });
+
+  testWidgets('главный экран показывает трекер воды', (tester) async {
+    await tester.pumpWidget(const GymLogApp());
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ВОДА'), findsOneWidget);
+    expect(find.text('0 / 3000 мл'), findsOneWidget);
+    expect(find.text('0 / 15 порций'), findsOneWidget);
+  });
+
+  }

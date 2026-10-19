@@ -15,6 +15,9 @@ import 'models.dart';
 class GymStore extends ChangeNotifier {
   static const storageKey = 'gym_log_v5';
   static const defaultSetsCount = 2;
+  static const waterGoalMl = 3000;
+  static const waterPortionMl = 200;
+  static const waterPortionsCount = 15;
 
   SharedPreferences? _prefs;
   final Map<String, List<SetEntry>> _sets = {};
@@ -22,9 +25,16 @@ class GymStore extends ChangeNotifier {
   final Set<String> _skipped = {};
   final Map<String, String> _overrides = {};
 
+  double? _userWeight;
+  double? _userHeight;
+  final Map<String, int> _waterIntake = {};
+
   Timer? _saveDebounce;
   Future<void> _pendingSave = Future<void>.value();
   bool ready = false;
+
+  double? get userWeight => _userWeight;
+  double? get userHeight => _userHeight;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -39,6 +49,9 @@ class GymStore extends ChangeNotifier {
         sessions.clear();
         _skipped.clear();
         _overrides.clear();
+        _userWeight = null;
+        _userHeight = null;
+        _waterIntake.clear();
       }
     }
     ready = true;
@@ -74,7 +87,20 @@ class GymStore extends ChangeNotifier {
       ..clear()
       ..addAll(((root['overrides'] as Map<String, dynamic>?) ?? const {})
           .map((k, v) => MapEntry(k, v.toString())));
-  }
+
+    _userWeight = (root['userWeight'] as num?)?.toDouble();
+    _userHeight = (root['userHeight'] as num?)?.toDouble();
+    _waterIntake.clear();
+    if (root['waterIntake'] is Map) {
+      for (final entry
+          in (root['waterIntake'] as Map<String, dynamic>).entries) {
+        final value = entry.value;
+        if (value is num) {
+          _waterIntake[entry.key] = value.toInt();
+        }
+      }
+    }
+    }
 
   String key(String workoutId, String exerciseId) => '$workoutId::$exerciseId';
 
@@ -255,18 +281,80 @@ class GymStore extends ChangeNotifier {
 
   // ---------------------------------------------------------------- persistence
 
-  Map<String, dynamic> _encode() => {
-        'version': 6,
-        'sets': {
-          for (final entry in _sets.entries)
-            entry.key: entry.value.map((e) => e.toJson()).toList(),
-        },
-        'sessions': sessions.map((e) => e.toJson()).toList(),
-        'skipped': _skipped.toList(),
-        'overrides': _overrides,
-      };
+  Map<String, dynamic> _encode() {
+    final Map<String, dynamic> map = {
+      'version': 7,
+      'sets': {
+        for (final entry in _sets.entries)
+          entry.key: entry.value.map((e) => e.toJson()).toList(),
+      },
+      'sessions': sessions.map((e) => e.toJson()).toList(),
+      'skipped': _skipped.toList(),
+      'overrides': _overrides,
+    };
+
+    if (_userWeight != null) map['userWeight'] = _userWeight;
+    if (_userHeight != null) map['userHeight'] = _userHeight;
+    if (_waterIntake.isNotEmpty) map['waterIntake'] = _waterIntake;
+
+    return map;
+  }
 
   String exportJson() => jsonEncode(_encode());
+
+  void setUserWeight(double value) {
+    _userWeight = value;
+    _queueSave();
+    notifyListeners();
+  }
+
+  void setUserHeight(double value) {
+    _userHeight = value;
+    _queueSave();
+    notifyListeners();
+  }
+
+  int getWaterForDate(DateTime date) {
+    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return _waterIntake[key] ?? 0;
+  }
+
+  int getWaterPortions(DateTime date) {
+    return getWaterForDate(date) ~/ waterPortionMl;
+  }
+
+  void toggleWaterPortion(DateTime date, int portionIndex) {
+    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final portions = getWaterPortions(date);
+    final targetMl = portionIndex < portions ? (portions - 1) * waterPortionMl : (portions + 1) * waterPortionMl;
+
+    if (targetMl > waterGoalMl) return;
+
+    if (targetMl == 0) {
+      _waterIntake.remove(key);
+    } else {
+      _waterIntake[key] = targetMl;
+    }
+
+    _queueSave();
+    notifyListeners();
+  }
+
+  void setWaterForDate(DateTime date, int ml) {
+    if (ml < 0) return;
+    if (ml > waterGoalMl) return;
+
+    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    if (ml == 0) {
+      _waterIntake.remove(key);
+    } else {
+      _waterIntake[key] = ml;
+    }
+
+    _queueSave();
+    notifyListeners();
+  }
 
   /// Импорт данных, скопированных из другого устройства.
   /// Возвращает false и ничего не меняет, если payload некорректен.
@@ -322,9 +410,14 @@ class GymStore extends ChangeNotifier {
     sessions.clear();
     _skipped.clear();
     _overrides.clear();
+    _userWeight = null;
+    _userHeight = null;
+    _waterIntake.clear();
     await _prefs?.remove(storageKey);
     notifyListeners();
   }
+
+  Map<String, int> get waterIntakeHistory => Map.from(_waterIntake);
 
   @override
   void dispose() {

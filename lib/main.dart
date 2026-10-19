@@ -26,7 +26,7 @@ class _GymLogAppState extends State<GymLogApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    store.init();
+    store.init().then((_) {});
   }
 
   @override

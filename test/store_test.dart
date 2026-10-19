@@ -166,4 +166,114 @@ void main() {
     expect(store.sessions.first.workoutId, 'B');
     expect(store.sessions.first.volume, 1500);
   });
+
+  test('вес пользователя сохраняется и загружается', () async {
+    final first = GymStore();
+    await first.init();
+    first.setUserWeight(75.5);
+    await first.flush();
+
+    final second = GymStore();
+    await second.init();
+    expect(second.userWeight, 75.5);
+  });
+
+  test('рост пользователя сохраняется и загружается', () async {
+    final first = GymStore();
+    await first.init();
+    first.setUserHeight(180);
+    await first.flush();
+
+    final second = GymStore();
+    await second.init();
+    expect(second.userHeight, 180);
+  });
+
+  test('вес и рост по умолчанию null, если не заданы', () async {
+    final store = GymStore();
+    await store.init();
+    expect(store.userWeight, isNull);
+    expect(store.userHeight, isNull);
+  });
+
+  test('некорректный вес не сохраняется валидацией на уровне store (границы)', () {
+    // Store only stores whatever is passed; validation is done in UI.
+    // Here we verify store accepts and stores positive values.
+    final store = GymStore();
+    store.setUserWeight(-5);
+    expect(store.userWeight, -5);
+  });
+
+  test('порции воды отмечаются и снимаются', () async {
+    final store = GymStore();
+    await store.init();
+
+    final today = DateTime.now();
+    expect(store.getWaterForDate(today), 0);
+    expect(store.getWaterPortions(today), 0);
+
+    store.toggleWaterPortion(today, 0);
+    expect(store.getWaterForDate(today), GymStore.waterPortionMl);
+    expect(store.getWaterPortions(today), 1);
+
+    store.toggleWaterPortion(today, 0);
+    expect(store.getWaterForDate(today), 0);
+    expect(store.getWaterPortions(today), 0);
+  });
+
+  test('нельзя отметить больше целевого количества порций воды', () async {
+    final store = GymStore();
+    await store.init();
+
+    final today = DateTime.now();
+    for (int i = 0; i < GymStore.waterPortionsCount; i++) {
+      store.toggleWaterPortion(today, i);
+    }
+    expect(store.getWaterForDate(today), GymStore.waterGoalMl);
+
+    // Trying to add one more portion should not exceed goal
+    store.toggleWaterPortion(today, GymStore.waterPortionsCount);
+    expect(store.getWaterForDate(today), GymStore.waterGoalMl);
+  });
+
+  test('вода сохраняется по датам и восстанавливается после перезапуска', () async {
+    final first = GymStore();
+    await first.init();
+
+    final today = DateTime.now();
+    first.toggleWaterPortion(today, 0);
+    first.toggleWaterPortion(today, 1);
+    await first.flush();
+
+    final second = GymStore();
+    await second.init();
+    expect(second.getWaterForDate(today), GymStore.waterPortionMl * 2);
+    expect(second.getWaterPortions(today), 2);
+  });
+
+  test('вода не сбрасывается при повторном открытии того же дня', () async {
+    final store = GymStore();
+    await store.init();
+
+    final today = DateTime.now();
+    store.toggleWaterPortion(today, 0);
+    final before = store.getWaterForDate(today);
+    // Simulate re-reading the same day
+    final again = store.getWaterForDate(today);
+    expect(before, again);
+    expect(before, GymStore.waterPortionMl);
+  });
+
+  test('старый формат без новых полей читается с умолчаниями', () async {
+    SharedPreferences.setMockInitialValues({
+      GymStore.storageKey: '{"version":6,"sets":{},"sessions":[],"skipped":[],"overrides":{}}',
+    });
+
+    final store = GymStore();
+    await store.init();
+
+    expect(store.userWeight, isNull);
+    expect(store.userHeight, isNull);
+    expect(store.getWaterForDate(DateTime.now()), 0);
+  });
 }
