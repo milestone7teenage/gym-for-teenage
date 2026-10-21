@@ -45,7 +45,7 @@ final best = _bestByExercise(store.sessions);
       physics: const BouncingScrollPhysics(),
       slivers: [
         const SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
           sliver: SliverToBoxAdapter(
             child: Text(
               'АНАЛИТИКА',
@@ -58,16 +58,22 @@ final best = _bestByExercise(store.sessions);
             ),
           ),
         ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 8),
+        ),
         const SliverPadding(
           padding: EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(child: ScreenTitle('Статистика')),
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 16),
         ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverGrid.count(
             crossAxisCount: 2,
-            mainAxisSpacing: 9,
-            crossAxisSpacing: 9,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
             childAspectRatio: 1.45,
             children: [
               _StatCard(
@@ -95,11 +101,17 @@ final best = _bestByExercise(store.sessions);
             ],
           ),
         ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
+        ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ЧАСТОТА'),
           ),
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 10),
         ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -111,11 +123,17 @@ final best = _bestByExercise(store.sessions);
             ),
           ),
         ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
+        ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ДИНАМИКА ПОСЛЕДНИХ ТРЕНИРОВОК'),
           ),
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 10),
         ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -128,11 +146,17 @@ final best = _bestByExercise(store.sessions);
             ),
           ),
         ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
+        ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ЛУЧШИЕ РЕЗУЛЬТАТЫ'),
           ),
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 10),
         ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -140,15 +164,24 @@ final best = _bestByExercise(store.sessions);
             child: _PrCard(best: best, bestSession: bestSession),
           ),
         ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
+        ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ВООБЩЕНИЕ ВОДЫ'),
           ),
         ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 10),
+        ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(child: _WaterStatsCard()),
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 32),
         ),
       ],
     );

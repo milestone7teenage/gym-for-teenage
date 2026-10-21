@@ -326,9 +326,16 @@ class GymStore extends ChangeNotifier {
   void toggleWaterPortion(DateTime date, int portionIndex) {
     final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final portions = getWaterPortions(date);
-    final targetMl = portionIndex < portions ? (portions - 1) * waterPortionMl : (portions + 1) * waterPortionMl;
 
-    if (targetMl > waterGoalMl) return;
+    int targetPortions;
+    if (portionIndex < portions) {
+      targetPortions = portionIndex;
+    } else {
+      targetPortions = portionIndex + 1;
+    }
+
+    if (targetPortions > waterPortionsCount) return;
+    final targetMl = targetPortions * waterPortionMl;
 
     if (targetMl == 0) {
       _waterIntake.remove(key);

@@ -304,23 +304,23 @@ class _WorkoutCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF211B38),
+                  color: purple,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  workout.day,
+                  '${workouts.indexOf(workout) + 1}',
                   style: const TextStyle(
-                    color: purpleSoft,
-                    fontSize: 18,
+                    color: Colors.white,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   workout.day,
