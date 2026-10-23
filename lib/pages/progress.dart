@@ -57,9 +57,7 @@ class ProgressPage extends StatelessWidget {
         ),
         const SliverPadding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
-          sliver: SliverToBoxAdapter(
-            child: SectionHeader(title: 'ТРЕНИРОВКИ'),
-          ),
+          sliver: SliverToBoxAdapter(child: SectionHeader(title: 'ТРЕНИРОВКИ')),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
@@ -204,14 +202,14 @@ class _ProgressWorkoutCard extends StatelessWidget {
                   color: const Color(0xFF241D40),
                   borderRadius: BorderRadius.circular(16),
                 ),
-child: Text(
-                    displayWorkoutId(workout.id),
-                    style: const TextStyle(
-                      color: purpleSoft,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
+                child: Text(
+                  displayWorkoutId(workout.id),
+                  style: const TextStyle(
+                    color: purpleSoft,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
                   ),
+                ),
               ),
               const SizedBox(width: 13),
               Expanded(
@@ -351,8 +349,9 @@ class WorkoutHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final records =
-        store.sessions.where((s) => s.workoutId == workout.id).toList();
+    final records = store.sessions
+        .where((s) => s.workoutId == workout.id)
+        .toList();
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(

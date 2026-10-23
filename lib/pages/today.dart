@@ -52,8 +52,29 @@ class HomePage extends StatelessWidget {
 // User metrics: weight and height
 // ---------------------------------------------------------------------------
 
-class _UserMetricsRow extends StatelessWidget {
+class _UserMetricsRow extends StatefulWidget {
   const _UserMetricsRow();
+
+  @override
+  State<_UserMetricsRow> createState() => _UserMetricsRowState();
+}
+
+class _UserMetricsRowState extends State<_UserMetricsRow> {
+  @override
+  void initState() {
+    super.initState();
+    store.addListener(_onStoreChange);
+  }
+
+  @override
+  void dispose() {
+    store.removeListener(_onStoreChange);
+    super.dispose();
+  }
+
+  void _onStoreChange() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,14 +130,16 @@ class _UserMetricsRow extends StatelessWidget {
                   TextFormField(
                     controller: controller,
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                      decimal: true,
+                    ),
                     textInputAction: TextInputAction.done,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w900),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
                     decoration: InputDecoration(
-                      hintText:
-                          isWeight ? 'Введите вес' : 'Введите рост',
+                      hintText: isWeight ? 'Введите вес' : 'Введите рост',
                       hintStyle: TextStyle(color: textMuted, fontSize: 14),
                       border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(14)),
@@ -124,8 +147,7 @@ class _UserMetricsRow extends StatelessWidget {
                       ),
                       filled: true,
                       fillColor: panel2,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       errorStyle: const TextStyle(fontSize: 11),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(14)),
@@ -155,15 +177,20 @@ class _UserMetricsRow extends StatelessWidget {
                       return null;
                     },
                     onEditingComplete: () => _saveMetric(
-                        dialogContext, key, isWeight, setDialogState),
+                      dialogContext,
+                      key,
+                      isWeight,
+                      setDialogState,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    isWeight
-                        ? 'Вес в килограммах'
-                        : 'Рост в сантиметрах',
+                    isWeight ? 'Вес в килограммах' : 'Рост в сантиметрах',
                     style: const TextStyle(
-                        color: textMuted, fontSize: 11, height: 1.4),
+                      color: textMuted,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -176,8 +203,8 @@ class _UserMetricsRow extends StatelessWidget {
               child: const Text('Отмена'),
             ),
             FilledButton(
-              onPressed: () => _saveMetric(
-                  dialogContext, key, isWeight, setDialogState),
+              onPressed: () =>
+                  _saveMetric(dialogContext, key, isWeight, setDialogState),
               style: FilledButton.styleFrom(backgroundColor: purple),
               child: const Text('Сохранить'),
             ),
@@ -187,14 +214,17 @@ class _UserMetricsRow extends StatelessWidget {
     );
   }
 
-  Future<void> _saveMetric(BuildContext dialogContext, GlobalKey<FormState> key,
-      bool isWeight, StateSetter setDialogState) async {
+  Future<void> _saveMetric(
+    BuildContext dialogContext,
+    GlobalKey<FormState> key,
+    bool isWeight,
+    StateSetter setDialogState,
+  ) async {
     final form = key.currentState;
     if (form == null) return;
     if (!form.validate()) return;
     final field = form.fields.first;
-    final input =
-        field.value?.toString().trim().replaceAll(',', '.') ?? '';
+    final input = field.value?.toString().trim().replaceAll(',', '.') ?? '';
     final parsed = double.tryParse(input);
     if (parsed == null) return;
     if (isWeight) {
@@ -343,8 +373,29 @@ class _WorkoutCard extends StatelessWidget {
 // Water tracker
 // ---------------------------------------------------------------------------
 
-class _WaterTracker extends StatelessWidget {
+class _WaterTracker extends StatefulWidget {
   const _WaterTracker();
+
+  @override
+  State<_WaterTracker> createState() => _WaterTrackerState();
+}
+
+class _WaterTrackerState extends State<_WaterTracker> {
+  @override
+  void initState() {
+    super.initState();
+    store.addListener(_onStoreChange);
+  }
+
+  @override
+  void dispose() {
+    store.removeListener(_onStoreChange);
+    super.dispose();
+  }
+
+  void _onStoreChange() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -366,8 +417,7 @@ class _WaterTracker extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                  Icons.water_drop_rounded, color: purpleSoft, size: 18),
+              const Icon(Icons.water_drop_rounded, color: purpleSoft, size: 18),
               const SizedBox(width: 8),
               const Text(
                 'ВОДА',
@@ -421,7 +471,10 @@ class _WaterTracker extends StatelessWidget {
                   ),
                   child: filled
                       ? const Icon(
-                          Icons.check_rounded, color: Colors.white, size: 22)
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        )
                       : null,
                 ),
               );

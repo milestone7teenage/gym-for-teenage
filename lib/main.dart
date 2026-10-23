@@ -68,12 +68,16 @@ class _GymLogAppState extends State<GymLogApp> with WidgetsBindingObserver {
             splashFactory: NoSplash.splashFactory,
             pageTransitionsTheme: PageTransitionsTheme(
               builders: {
-                TargetPlatform.android: const FadeForwardsPageTransitionsBuilder(),
+                TargetPlatform.android:
+                    const FadeForwardsPageTransitionsBuilder(),
                 TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
-                TargetPlatform.windows: const FadeForwardsPageTransitionsBuilder(),
-                TargetPlatform.linux: const FadeForwardsPageTransitionsBuilder(),
+                TargetPlatform.windows:
+                    const FadeForwardsPageTransitionsBuilder(),
+                TargetPlatform.linux:
+                    const FadeForwardsPageTransitionsBuilder(),
                 TargetPlatform.macOS: const CupertinoPageTransitionsBuilder(),
-                TargetPlatform.fuchsia: const FadeForwardsPageTransitionsBuilder(),
+                TargetPlatform.fuchsia:
+                    const FadeForwardsPageTransitionsBuilder(),
               },
             ),
           ),
@@ -125,6 +129,24 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int tab = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild AppShell (and its pages) on every store change.
+    store.addListener(_onStoreChange);
+  }
+
+  @override
+  void dispose() {
+    store.removeListener(_onStoreChange);
+    super.dispose();
+  }
+
+  void _onStoreChange() {
+    // Trigger a rebuild to propagate latest store values to pages.
+    setState(() {});
+  }
+
   Workout get todayWorkout {
     switch (DateTime.now().weekday) {
       case DateTime.thursday:
@@ -148,22 +170,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(.015, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
-          ),
-          child: KeyedSubtree(key: ValueKey(tab), child: pages[tab]),
-        ),
+        child: IndexedStack(index: tab, children: pages),
       ),
       bottomNavigationBar: PremiumNav(
         selected: tab,
@@ -215,7 +222,9 @@ class PremiumNav extends StatelessWidget {
                   duration: const Duration(milliseconds: 170),
                   curve: Curves.easeOutCubic,
                   decoration: BoxDecoration(
-                    color: active ? const Color(0xFF241C40) : Colors.transparent,
+                    color: active
+                        ? const Color(0xFF241C40)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(19),
                   ),
                   child: Center(
@@ -235,7 +244,9 @@ class PremiumNav extends StatelessWidget {
                             item.$2,
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                              fontWeight: active
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                               color: active ? Colors.white : textMuted,
                             ),
                           ),

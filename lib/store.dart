@@ -74,19 +74,25 @@ class GymStore extends ChangeNotifier {
     final rawSessions = root['sessions'] as List<dynamic>? ?? [];
     sessions
       ..clear()
-      ..addAll(rawSessions
-          .whereType<Map>()
-          .map((e) => SessionRecord.fromJson(Map<String, dynamic>.from(e))));
+      ..addAll(
+        rawSessions.whereType<Map>().map(
+          (e) => SessionRecord.fromJson(Map<String, dynamic>.from(e)),
+        ),
+      );
 
     _skipped
       ..clear()
-      ..addAll(((root['skipped'] as List<dynamic>?) ?? const [])
-          .whereType<String>());
+      ..addAll(
+        ((root['skipped'] as List<dynamic>?) ?? const []).whereType<String>(),
+      );
 
     _overrides
       ..clear()
-      ..addAll(((root['overrides'] as Map<String, dynamic>?) ?? const {})
-          .map((k, v) => MapEntry(k, v.toString())));
+      ..addAll(
+        ((root['overrides'] as Map<String, dynamic>?) ?? const {}).map(
+          (k, v) => MapEntry(k, v.toString()),
+        ),
+      );
 
     _userWeight = (root['userWeight'] as num?)?.toDouble();
     _userHeight = (root['userHeight'] as num?)?.toDouble();
@@ -100,7 +106,7 @@ class GymStore extends ChangeNotifier {
         }
       }
     }
-    }
+  }
 
   String key(String workoutId, String exerciseId) => '$workoutId::$exerciseId';
 
@@ -159,7 +165,12 @@ class GymStore extends ChangeNotifier {
     );
   }
 
-  void updateWeight(String workoutId, String exerciseId, int index, double value) {
+  void updateWeight(
+    String workoutId,
+    String exerciseId,
+    int index,
+    double value,
+  ) {
     final sets = setsFor(workoutId, exerciseId);
     final set = sets[index];
     set.weight = value;
@@ -181,7 +192,12 @@ class GymStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateNote(String workoutId, String exerciseId, int index, String value) {
+  void updateNote(
+    String workoutId,
+    String exerciseId,
+    int index,
+    String value,
+  ) {
     setsFor(workoutId, exerciseId)[index].note = value;
     _queueSave();
     notifyListeners();
@@ -210,26 +226,37 @@ class GymStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void resetWorkout(Workout workout) {
+    for (final exercise in exercisesOf(workout)) {
+      final sets = setsFor(workout.id, exercise.id);
+      for (final set in sets) {
+        set.done = false;
+      }
+    }
+    _queueSave();
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------- totals
 
   int completedSets(Workout workout) => exercisesOf(workout).fold(
-        0,
-        (sum, e) => sum + setsFor(workout.id, e.id).where((s) => s.done).length,
-      );
+    0,
+    (sum, e) => sum + setsFor(workout.id, e.id).where((s) => s.done).length,
+  );
 
-  int totalSets(Workout workout) => exercisesOf(workout).fold(
-        0,
-        (sum, e) => sum + setsFor(workout.id, e.id).length,
-      );
+  int totalSets(Workout workout) =>
+      exercisesOf(workout)
+          .fold(0, (sum, e) => sum + setsFor(workout.id, e.id).length);
 
   double volume(Workout workout) => exercisesOf(workout).fold<double>(
-        0,
-        (sum, e) =>
-            sum +
-            setsFor(workout.id, e.id)
-                .where((s) => s.done)
-                .fold<double>(0, (v, s) => v + s.weight * s.reps),
-      );
+    0,
+    (sum, e) =>
+        sum +
+        setsFor(
+          workout.id,
+          e.id,
+        ).where((s) => s.done).fold<double>(0, (v, s) => v + s.weight * s.reps),
+  );
 
   double get totalVolume => sessions.fold<double>(0, (v, s) => v + s.volume);
 
@@ -252,17 +279,21 @@ class GymStore extends ChangeNotifier {
 
     final details = <SessionExercise>[];
     for (final exercise in exercisesOf(workout)) {
-      final done =
-          setsFor(workout.id, exercise.id).where((s) => s.done).toList();
+      final done = setsFor(
+        workout.id,
+        exercise.id,
+      ).where((s) => s.done).toList();
       if (done.isEmpty) continue;
-      details.add(SessionExercise(
-        exerciseId: exercise.id,
-        name: exercise.name,
-        muscle: exercise.muscle,
-        sets: [
-          for (final s in done) SetRecord(weight: s.weight, reps: s.reps),
-        ],
-      ));
+      details.add(
+        SessionExercise(
+          exerciseId: exercise.id,
+          name: exercise.name,
+          muscle: exercise.muscle,
+          sets: [
+            for (final s in done) SetRecord(weight: s.weight, reps: s.reps),
+          ],
+        ),
+      );
     }
 
     sessions.insert(
@@ -315,7 +346,8 @@ class GymStore extends ChangeNotifier {
   }
 
   int getWaterForDate(DateTime date) {
-    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final key =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     return _waterIntake[key] ?? 0;
   }
 
@@ -324,7 +356,8 @@ class GymStore extends ChangeNotifier {
   }
 
   void toggleWaterPortion(DateTime date, int portionIndex) {
-    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final key =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final portions = getWaterPortions(date);
 
     int targetPortions;
@@ -351,7 +384,8 @@ class GymStore extends ChangeNotifier {
     if (ml < 0) return;
     if (ml > waterGoalMl) return;
 
-    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final key =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
     if (ml == 0) {
       _waterIntake.remove(key);
@@ -395,9 +429,7 @@ class GymStore extends ChangeNotifier {
   }
 
   Future<void> _enqueueSave() {
-    _pendingSave = _pendingSave
-        .then((_) => _write())
-        .catchError((Object _) {});
+    _pendingSave = _pendingSave.then((_) => _write()).catchError((Object _) {});
     return _pendingSave;
   }
 

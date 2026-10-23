@@ -46,20 +46,20 @@ class SetEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        'weight': weight,
-        'reps': reps,
-        'done': done,
-        if (note.isNotEmpty) 'note': note,
-        if (weightManuallySet) 'weightManuallySet': true,
-      };
+    'weight': weight,
+    'reps': reps,
+    'done': done,
+    if (note.isNotEmpty) 'note': note,
+    if (weightManuallySet) 'weightManuallySet': true,
+  };
 
   factory SetEntry.fromJson(Map<String, dynamic> json) => SetEntry(
-        weight: (json['weight'] as num?)?.toDouble() ?? 20,
-        reps: (json['reps'] as num?)?.toInt() ?? 10,
-        done: json['done'] == true,
-        note: json['note'] as String? ?? '',
-        weightManuallySet: json['weightManuallySet'] == true,
-      );
+    weight: (json['weight'] as num?)?.toDouble() ?? 20,
+    reps: (json['reps'] as num?)?.toInt() ?? 10,
+    done: json['done'] == true,
+    note: json['note'] as String? ?? '',
+    weightManuallySet: json['weightManuallySet'] == true,
+  );
 }
 
 /// Снимок выполненного подхода внутри сохранённой тренировки.
@@ -72,9 +72,9 @@ class SetRecord {
   Map<String, dynamic> toJson() => {'weight': weight, 'reps': reps};
 
   factory SetRecord.fromJson(Map<String, dynamic> json) => SetRecord(
-        weight: (json['weight'] as num?)?.toDouble() ?? 0,
-        reps: (json['reps'] as num?)?.toInt() ?? 0,
-      );
+    weight: (json['weight'] as num?)?.toDouble() ?? 0,
+    reps: (json['reps'] as num?)?.toInt() ?? 0,
+  );
 }
 
 /// Снимок упражнения внутри сохранённой тренировки.
@@ -92,13 +92,14 @@ class SessionExercise {
   });
 
   Map<String, dynamic> toJson() => {
-        'exerciseId': exerciseId,
-        'name': name,
-        'muscle': muscle,
-        'sets': sets.map((s) => s.toJson()).toList(),
-      };
+    'exerciseId': exerciseId,
+    'name': name,
+    'muscle': muscle,
+    'sets': sets.map((s) => s.toJson()).toList(),
+  };
 
-  factory SessionExercise.fromJson(Map<String, dynamic> json) => SessionExercise(
+  factory SessionExercise.fromJson(Map<String, dynamic> json) =>
+      SessionExercise(
         exerciseId: json['exerciseId'] as String? ?? '',
         name: json['name'] as String? ?? '',
         muscle: json['muscle'] as String? ?? '',
@@ -125,23 +126,23 @@ class SessionRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'workoutId': workoutId,
-        'date': date.toIso8601String(),
-        'completedSets': completedSets,
-        'volume': volume,
-        'exercises': exercises.map((e) => e.toJson()).toList(),
-      };
+    'workoutId': workoutId,
+    'date': date.toIso8601String(),
+    'completedSets': completedSets,
+    'volume': volume,
+    'exercises': exercises.map((e) => e.toJson()).toList(),
+  };
 
   factory SessionRecord.fromJson(Map<String, dynamic> json) => SessionRecord(
-        workoutId: json['workoutId'] as String? ?? 'A',
-        date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
-        completedSets: (json['completedSets'] as num?)?.toInt() ?? 0,
-        volume: (json['volume'] as num?)?.toDouble() ?? 0,
-        exercises: ((json['exercises'] as List<dynamic>?) ?? const [])
-            .whereType<Map>()
-            .map((e) => SessionExercise.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-      );
+    workoutId: json['workoutId'] as String? ?? 'A',
+    date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+    completedSets: (json['completedSets'] as num?)?.toInt() ?? 0,
+    volume: (json['volume'] as num?)?.toDouble() ?? 0,
+    exercises: ((json['exercises'] as List<dynamic>?) ?? const [])
+        .whereType<Map>()
+        .map((e) => SessionExercise.fromJson(Map<String, dynamic>.from(e)))
+        .toList(),
+  );
 }
 
 /// Библиотека упражнений — единственный источник правды по картинкам,
@@ -337,13 +338,13 @@ Exercise? libraryExercise(String id) => _libraryById[id];
 /// Копия библиотечного упражнения с постоянным id слота: сохраняет
 /// совместимость со старыми ключами хранилища (`A::a1` и т.п.).
 Exercise _slot(String slotId, Exercise template) => Exercise(
-      id: slotId,
-      name: template.name,
-      muscle: template.muscle,
-      image: template.image,
-      icon: template.icon,
-      technique: template.technique,
-    );
+  id: slotId,
+  name: template.name,
+  muscle: template.muscle,
+  image: template.image,
+  icon: template.icon,
+  technique: template.technique,
+);
 
 /// Тренировки: A — вторник, B — четверг, C — суббота.
 final workouts = <Workout>[

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -13,6 +13,45 @@ class WorkoutPage extends StatelessWidget {
   final Workout workout;
 
   const WorkoutPage({super.key, required this.workout});
+
+  Future<void> _reset(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: panel,
+        title: const Text(
+          'Сбросить тренировку?',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: const Text(
+          'Все отметки выполнения подходов в этой тренировке будут сняты. '
+          'История сохранённых тренировок, вес, рост и настройки не пострадают.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: red),
+            child: const Text('Сбросить'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    store.resetWorkout(workout);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          content: Text('Отметки выполнения сброшены'),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,8 +181,11 @@ class WorkoutPage extends StatelessWidget {
                         content: Text('${exercises[index].name} — пропущено'),
                         action: SnackBarAction(
                           label: 'ВЕРНУТЬ',
-                          onPressed: () =>
-                              store.setSkipped(workout, exercises[index], false),
+                          onPressed: () => store.setSkipped(
+                            workout,
+                            exercises[index],
+                            false,
+                          ),
                         ),
                       ),
                     );
@@ -153,25 +195,54 @@ class WorkoutPage extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 8),
-          FilledButton(
-            onPressed: completed == 0
-                ? null
-                : () {
-                    store.saveSession(workout);
-                    Navigator.pop(context);
-                  },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(54),
-              backgroundColor: purple,
-              disabledBackgroundColor: panel2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _reset(context),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('СБРОСИТЬ'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .6,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            child: const Text(
-              'СОХРАНИТЬ ТРЕНИРОВКУ',
-              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: .6),
-            ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: FilledButton(
+                  onPressed: completed == 0
+                      ? null
+                      : () {
+                          store.saveSession(workout);
+                          Navigator.pop(context);
+                        },
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: purple,
+                    disabledBackgroundColor: panel2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: const Text(
+                    'СОХРАНИТЬ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .6,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -238,8 +309,8 @@ class _ExerciseListRow extends StatelessWidget {
                   color: complete
                       ? const Color(0xFF31543A)
                       : skipped
-                          ? const Color(0xFF3A2C30)
-                          : border,
+                      ? const Color(0xFF3A2C30)
+                      : border,
                 ),
               ),
               child: Row(
@@ -264,8 +335,9 @@ class _ExerciseListRow extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            decoration:
-                                skipped ? TextDecoration.lineThrough : null,
+                            decoration: skipped
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -348,29 +420,34 @@ class _ExercisePageState extends State<ExercisePage> {
   late List<TextEditingController> _reps;
   late List<TextEditingController> _notes;
   final List<bool> _noteOpen = [];
+  int _editingIndex = -1;
 
   @override
   void initState() {
     super.initState();
     _makeControllers();
+    // Rebuild this page when store notifies listeners (e.g., weight/reps
+    // updates, propagation to subsequent sets, set add/remove).
+    store.addListener(_onStoreChange);
   }
 
   void _makeControllers() {
     final sets = store.setsFor(widget.workout.id, widget.exercise.id);
     _weights = [
-      for (final s in sets) TextEditingController(text: _fmt(s.weight))
+      for (final s in sets) TextEditingController(text: _fmt(s.weight)),
     ];
-    _reps = [
-      for (final s in sets) TextEditingController(text: '${s.reps}')
-    ];
-    _notes = [
-      for (final s in sets) TextEditingController(text: s.note)
-    ];
+    _reps = [for (final s in sets) TextEditingController(text: '${s.reps}')];
+    _notes = [for (final s in sets) TextEditingController(text: s.note)];
     _noteOpen
       ..clear()
-      ..addAll([
-        for (final s in sets) s.note.isNotEmpty,
-      ]);
+      ..addAll([for (final s in sets) s.note.isNotEmpty]);
+  }
+
+  void _onStoreChange() {
+    if (!mounted) return;
+    _syncControllers();
+    // Rebuild to reflect latest store values in UI (done counts, etc.).
+    setState(() {});
   }
 
   String _fmt(double value) =>
@@ -378,17 +455,51 @@ class _ExercisePageState extends State<ExercisePage> {
 
   void _syncControllers() {
     final sets = store.setsFor(widget.workout.id, widget.exercise.id);
-    while (_weights.length < sets.length) {
+    final count = sets.length;
+    // Ensure we have exactly 'count' controllers.
+    while (_weights.length < count) {
       final i = _weights.length;
       _weights.add(TextEditingController(text: _fmt(sets[i].weight)));
       _reps.add(TextEditingController(text: '${sets[i].reps}'));
       _notes.add(TextEditingController(text: sets[i].note));
       _noteOpen.add(sets[i].note.isNotEmpty);
     }
+    while (_weights.length > count) {
+      _weights.removeLast().dispose();
+      _reps.removeLast().dispose();
+      _notes.removeLast().dispose();
+      _noteOpen.removeLast();
+    }
+    // Never overwrite text of the field being edited (cursor loss).
+    if (_editingIndex >= 0 && _editingIndex < count) {
+      // Sync all except the one being edited.
+      for (var i = 0; i < count; i++) {
+        if (i == _editingIndex) continue;
+        final s = sets[i];
+        _resyncController(_weights[i], _fmt(s.weight));
+        _resyncController(_reps[i], '${s.reps}');
+        _resyncController(_notes[i], s.note);
+      }
+    } else {
+      // No active edit, sync everything.
+      for (var i = 0; i < count; i++) {
+        final s = sets[i];
+        _resyncController(_weights[i], _fmt(s.weight));
+        _resyncController(_reps[i], '${s.reps}');
+        _resyncController(_notes[i], s.note);
+      }
+    }
+  }
+
+  void _resyncController(TextEditingController controller, String text) {
+    if (controller.text == text) return;
+    controller.text = text;
+    controller.selection = TextSelection.collapsed(offset: text.length);
   }
 
   @override
   void dispose() {
+    store.removeListener(_onStoreChange);
     for (final c in _weights) {
       c.dispose();
     }
@@ -462,9 +573,8 @@ class _ExercisePageState extends State<ExercisePage> {
                 child: _ActionChip(
                   icon: Icons.menu_book_rounded,
                   label: 'ТЕХНИКА',
-                  onTap: () => _openSheet(
-                    TechniqueSheet(exercise: widget.exercise),
-                  ),
+                  onTap: () =>
+                      _openSheet(TechniqueSheet(exercise: widget.exercise)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -486,10 +596,7 @@ class _ExercisePageState extends State<ExercisePage> {
                   icon: Icons.swap_horiz_rounded,
                   label: 'ЗАМЕНИТЬ',
                   onTap: () => _openSheet(
-                    ReplaceSheet(
-                      workout: widget.workout,
-                      index: idx,
-                    ),
+                    ReplaceSheet(workout: widget.workout, index: idx),
                   ),
                 ),
               ),
@@ -542,10 +649,13 @@ class _ExercisePageState extends State<ExercisePage> {
                     setState(() => _noteOpen[index] = !_noteOpen[index]),
                 onDone: () {
                   store.toggleDone(
-                      widget.workout.id, widget.exercise.id, index);
-                  setState(() {});
+                    widget.workout.id,
+                    widget.exercise.id,
+                    index,
+                  );
                 },
                 onWeightChanged: (value) {
+                  _editingIndex = index;
                   final parsed = double.tryParse(value.replaceAll(',', '.'));
                   if (parsed != null) {
                     store.updateWeight(
@@ -555,8 +665,10 @@ class _ExercisePageState extends State<ExercisePage> {
                       parsed,
                     );
                   }
+                  _editingIndex = -1;
                 },
                 onRepsChanged: (value) {
+                  _editingIndex = index;
                   final parsed = int.tryParse(value);
                   if (parsed != null) {
                     store.updateReps(
@@ -566,36 +678,28 @@ class _ExercisePageState extends State<ExercisePage> {
                       parsed,
                     );
                   }
+                  _editingIndex = -1;
                 },
-                onNoteChanged: (value) => store.updateNote(
-                  widget.workout.id,
-                  widget.exercise.id,
-                  index,
-                  value,
-                ),
-                onDelete: () {
-                  if (sets.length <= 1) return;
-                  store.removeSet(
+                onNoteChanged: (value) {
+                  _editingIndex = index;
+                  store.updateNote(
                     widget.workout.id,
                     widget.exercise.id,
                     index,
+                    value,
                   );
-                  final w = _weights.removeAt(index);
-                  final r = _reps.removeAt(index);
-                  final n = _notes.removeAt(index);
-                  w.dispose();
-                  r.dispose();
-                  n.dispose();
-                  _noteOpen.removeAt(index);
-                  setState(() {});
+                  _editingIndex = -1;
+                },
+                onDelete: () {
+                  if (sets.length <= 1) return;
+                  store.removeSet(widget.workout.id, widget.exercise.id, index);
+                  // Controllers are cleaned up by _onStoreChange via _syncControllers.
                 },
               ),
             ),
           OutlinedButton.icon(
             onPressed: () {
               store.addSet(widget.workout.id, widget.exercise.id);
-              _syncControllers();
-              setState(() {});
             },
             icon: const Icon(Icons.add_rounded),
             label: const Text('ЕЩЁ ПОДХОД'),
@@ -623,15 +727,15 @@ class _ExercisePageState extends State<ExercisePage> {
                   enabled: idx > 0,
                   onTap: idx > 0
                       ? () => Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ExercisePage(
-                                workout: widget.workout,
-                                exercise: exercises[idx - 1],
-                                index: idx - 1,
-                              ),
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExercisePage(
+                              workout: widget.workout,
+                              exercise: exercises[idx - 1],
+                              index: idx - 1,
                             ),
-                          )
+                          ),
+                        )
                       : null,
                 ),
               ),
@@ -644,15 +748,15 @@ class _ExercisePageState extends State<ExercisePage> {
                   filled: true,
                   onTap: idx < exercises.length - 1
                       ? () => Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ExercisePage(
-                                workout: widget.workout,
-                                exercise: exercises[idx + 1],
-                                index: idx + 1,
-                              ),
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExercisePage(
+                              workout: widget.workout,
+                              exercise: exercises[idx + 1],
+                              index: idx + 1,
                             ),
-                          )
+                          ),
+                        )
                       : null,
                 ),
               ),
@@ -776,9 +880,7 @@ class _LastSessionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFF2F2850)),
       ),
-      child: Row(
-        children: children,
-      ),
+      child: Row(children: children),
     );
   }
 
@@ -829,9 +931,7 @@ class SetRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: set.done ? const Color(0xFF111D15) : panel,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: set.done ? const Color(0xFF31543A) : border,
-        ),
+        border: Border.all(color: set.done ? const Color(0xFF31543A) : border),
       ),
       child: Column(
         children: [
@@ -911,7 +1011,11 @@ class SetRow extends StatelessWidget {
                       ),
                     ),
                     child: set.done
-                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          )
                         : null,
                   ),
                 ),
@@ -1196,8 +1300,11 @@ class TechniqueSheet extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 18, color: purpleSoft),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: purpleSoft,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -1255,8 +1362,10 @@ class ExerciseHistorySheet extends StatelessWidget {
             children: [
               Text(
                 exercise.name,
-                style:
-                    const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 14),
               const Text(
@@ -1386,8 +1495,7 @@ class ReplaceSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = store.exerciseAt(workout, index);
-    final options =
-        exerciseLibrary.where((e) => e.id != current.id).toList();
+    final options = exerciseLibrary.where((e) => e.id != current.id).toList();
 
     return SafeArea(
       child: Padding(
@@ -1472,4 +1580,3 @@ class ReplaceSheet extends StatelessWidget {
     );
   }
 }
-

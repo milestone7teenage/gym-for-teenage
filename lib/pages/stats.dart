@@ -15,12 +15,21 @@ class StatsPage extends StatelessWidget {
     final volume = store.totalVolume;
 
     final now = DateTime.now();
-    final monthAgo = DateTime(now.year, now.month, now.day)
-        .subtract(const Duration(days: 30));
-    final weekAgo = DateTime(now.year, now.month, now.day)
-        .subtract(const Duration(days: 7));
-    final twoWeeksAgo = DateTime(now.year, now.month, now.day)
-        .subtract(const Duration(days: 14));
+    final monthAgo = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 30));
+    final weekAgo = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 7));
+    final twoWeeksAgo = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 14));
 
     final last30 = store.sessionsSince(monthAgo);
     final perWeek = last30.isEmpty ? 0.0 : last30.length / 4.3;
@@ -33,7 +42,7 @@ class StatsPage extends StatelessWidget {
       (m, s) => s.volume > m ? s.volume : m,
     );
 
-final best = _bestByExercise(store.sessions);
+    final best = _bestByExercise(store.sessions);
     final bestSession = sessions == 0
         ? null
         : store.sessions.fold<SessionRecord>(
@@ -58,16 +67,12 @@ final best = _bestByExercise(store.sessions);
             ),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 8),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverPadding(
           padding: EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(child: ScreenTitle('Статистика')),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 16),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverGrid.count(
@@ -93,48 +98,40 @@ final best = _bestByExercise(store.sessions);
               ),
               _StatCard(
                 icon: Icons.speed_rounded,
-                value: sessions == 0
-                    ? '—'
-                    : '${(volume / sessions).round()}',
+                value: sessions == 0 ? '—' : '${(volume / sessions).round()}',
                 label: 'КГ В СРЕДНЕМ',
               ),
             ],
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 24),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ЧАСТОТА'),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 10),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 10)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(
             child: _FrequencyCard(
               perWeek: perWeek,
               last30: last30.length,
-              lastDate: store.sessions.isEmpty ? null : store.sessions.first.date,
+              lastDate: store.sessions.isEmpty
+                  ? null
+                  : store.sessions.first.date,
             ),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 24),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ДИНАМИКА ПОСЛЕДНИХ ТРЕНИРОВОК'),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 10),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 10)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(
@@ -146,43 +143,33 @@ final best = _bestByExercise(store.sessions);
             ),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 24),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ЛУЧШИЕ РЕЗУЛЬТАТЫ'),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 10),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 10)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(
             child: _PrCard(best: best, bestSession: bestSession),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 24),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(
             child: SectionHeader(title: 'ВООБЩЕНИЕ ВОДЫ'),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 10),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 10)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: const SliverToBoxAdapter(child: _WaterStatsCard()),
         ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 32),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
   }
@@ -208,16 +195,16 @@ final best = _bestByExercise(store.sessions);
         if (exercise == null) continue;
         for (final set in se.sets) {
           final current = best[se.exerciseId];
-          final better = current == null ||
+          final better =
+              current == null ||
               set.weight > current.$2.weight ||
-              (set.weight == current.$2.weight &&
-                  set.reps > current.$2.reps);
+              (set.weight == current.$2.weight && set.reps > current.$2.reps);
           if (better) best[se.exerciseId] = (exercise, set);
         }
       }
     }
 
-final list = best.values.toList()
+    final list = best.values.toList()
       ..sort((a, b) => b.$2.weight.compareTo(a.$2.weight));
     return list;
   }
@@ -240,7 +227,11 @@ class _FrequencyCard extends StatelessWidget {
     String ago = '—';
     if (lastDate != null) {
       final days = now.difference(lastDate!).inDays;
-      ago = days == 0 ? 'сегодня' : days == 1 ? 'вчера' : '$days дн. назад';
+      ago = days == 0
+          ? 'сегодня'
+          : days == 1
+          ? 'вчера'
+          : '$days дн. назад';
     }
 
     return Container(
@@ -350,14 +341,14 @@ class _TrendCard extends StatelessWidget {
                 trendEqual
                     ? 'БЕЗ ИЗМЕНЕНИЙ'
                     : trendUp
-                        ? '↑ НЕДЕЛЯ К НЕДЕЛЕ'
-                        : '↓ НЕДЕЛЯ К НЕДЕЛЕ',
+                    ? '↑ НЕДЕЛЯ К НЕДЕЛЕ'
+                    : '↓ НЕДЕЛЯ К НЕДЕЛЕ',
                 style: TextStyle(
                   color: trendEqual
                       ? textMuted
                       : trendUp
-                          ? green
-                          : red,
+                      ? green
+                      : red,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
                   letterSpacing: .8,
@@ -412,10 +403,7 @@ class _TrendCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'За 7 дней: ${volume7.round()} кг',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -453,11 +441,7 @@ class _PrCard extends StatelessWidget {
           if (bestSession != null) ...[
             Row(
               children: [
-                const Icon(
-                  Icons.emoji_events_rounded,
-                  color: green,
-                  size: 18,
-                ),
+                const Icon(Icons.emoji_events_rounded, color: green, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -472,7 +456,9 @@ class _PrCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-          ...best.take(6).map(
+          ...best
+              .take(6)
+              .map(
                 (entry) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Row(
@@ -569,16 +555,18 @@ class _WaterStatsCard extends StatelessWidget {
     final portionMl = GymStore.waterPortionMl;
 
     final days = List.generate(7, (i) {
-      final d = DateTime(now.year, now.month, now.day).subtract(Duration(days: 6 - i));
-      return _DayData(
-        date: d,
-        ml: store.getWaterForDate(d),
-      );
+      final d = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: 6 - i));
+      return _DayData(date: d, ml: store.getWaterForDate(d));
     });
 
-    final maxMl = days.fold<int>(0, (m, d) => d.ml > m ? d.ml : m).clamp(1, goal);
-    final history = store.waterIntakeHistory.entries
-        .toList()
+    final maxMl = days
+        .fold<int>(0, (m, d) => d.ml > m ? d.ml : m)
+        .clamp(1, goal);
+    final history = store.waterIntakeHistory.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
 
     return Container(
@@ -726,7 +714,8 @@ class _WaterHistoryRow extends StatelessWidget {
       int.parse(parts[2]),
     );
     final portions = entry.value ~/ GymStore.waterPortionMl;
-    final isToday = date.year == DateTime.now().year &&
+    final isToday =
+        date.year == DateTime.now().year &&
         date.month == DateTime.now().month &&
         date.day == DateTime.now().day;
 
@@ -767,8 +756,18 @@ class _WaterHistoryRow extends StatelessWidget {
 
   static String _formatDate(DateTime date) {
     const months = [
-      'янв', 'фев', 'мар', 'апр', 'май', 'июн',
-      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'май',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек',
     ];
     final now = DateTime.now();
     final diff = now.difference(date).inDays;

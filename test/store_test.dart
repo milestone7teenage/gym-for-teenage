@@ -54,15 +54,13 @@ void main() {
     expect(second.setsFor('B', 'b1'), hasLength(2));
   });
 
-  test('сохранённая тренировка несёт снимок упражнений и подходов',
-      () async {
+  test('сохранённая тренировка несёт снимок упражнений и подходов', () async {
     final first = GymStore();
     await first.init();
     final workout = workouts.first;
     first
       ..toggleDone(workout.id, workout.exercises.first.id, 0)
-      ..updateWeight(
-          workout.id, workout.exercises.first.id, 0, 60)
+      ..updateWeight(workout.id, workout.exercises.first.id, 0, 60)
       ..updateReps(workout.id, workout.exercises.first.id, 0, 10);
     first.saveSession(workout);
     await first.flush();
@@ -149,7 +147,8 @@ void main() {
 
   test('старый формат хранилища читается без потерь', () async {
     SharedPreferences.setMockInitialValues({
-      GymStore.storageKey: '{"version":5,"sets":{"A::a1":['
+      GymStore.storageKey:
+          '{"version":5,"sets":{"A::a1":['
           '{"weight":50,"reps":12,"done":true}]},'
           '"sessions":[{"workoutId":"B","date":"2026-01-05T10:00:00.000",'
           '"completedSets":3,"volume":1500}]}',
@@ -196,13 +195,16 @@ void main() {
     expect(store.userHeight, isNull);
   });
 
-  test('некорректный вес не сохраняется валидацией на уровне store (границы)', () {
-    // Store only stores whatever is passed; validation is done in UI.
-    // Here we verify store accepts and stores positive values.
-    final store = GymStore();
-    store.setUserWeight(-5);
-    expect(store.userWeight, -5);
-  });
+  test(
+    'некорректный вес не сохраняется валидацией на уровне store (границы)',
+    () {
+      // Store only stores whatever is passed; validation is done in UI.
+      // Here we verify store accepts and stores positive values.
+      final store = GymStore();
+      store.setUserWeight(-5);
+      expect(store.userWeight, -5);
+    },
+  );
 
   test('порции воды отмечаются и снимаются', () async {
     final store = GymStore();
@@ -236,20 +238,23 @@ void main() {
     expect(store.getWaterForDate(today), GymStore.waterGoalMl);
   });
 
-  test('вода сохраняется по датам и восстанавливается после перезапуска', () async {
-    final first = GymStore();
-    await first.init();
+  test(
+    'вода сохраняется по датам и восстанавливается после перезапуска',
+    () async {
+      final first = GymStore();
+      await first.init();
 
-    final today = DateTime.now();
-    first.toggleWaterPortion(today, 0);
-    first.toggleWaterPortion(today, 1);
-    await first.flush();
+      final today = DateTime.now();
+      first.toggleWaterPortion(today, 0);
+      first.toggleWaterPortion(today, 1);
+      await first.flush();
 
-    final second = GymStore();
-    await second.init();
-    expect(second.getWaterForDate(today), GymStore.waterPortionMl * 2);
-    expect(second.getWaterPortions(today), 2);
-  });
+      final second = GymStore();
+      await second.init();
+      expect(second.getWaterForDate(today), GymStore.waterPortionMl * 2);
+      expect(second.getWaterPortions(today), 2);
+    },
+  );
 
   test('вода не сбрасывается при повторном открытии того же дня', () async {
     final store = GymStore();
@@ -266,7 +271,8 @@ void main() {
 
   test('старый формат без новых полей читается с умолчаниями', () async {
     SharedPreferences.setMockInitialValues({
-      GymStore.storageKey: '{"version":6,"sets":{},"sessions":[],"skipped":[],"overrides":{}}',
+      GymStore.storageKey:
+          '{"version":6,"sets":{},"sessions":[],"skipped":[],"overrides":{}}',
     });
 
     final store = GymStore();
@@ -275,5 +281,67 @@ void main() {
     expect(store.userWeight, isNull);
     expect(store.userHeight, isNull);
     expect(store.getWaterForDate(DateTime.now()), 0);
+  });
+
+  test('сброс тренировки снимает отметки выполнения', () async {
+    final store = GymStore();
+    await store.init();
+
+    final workout = workouts.first;
+    final exercise = workout.exercises.first;
+
+    store
+      ..toggleDone(workout.id, exercise.id, 0)
+      ..toggleDone(workout.id, exercise.id, 1);
+    expect(store.completedSets(workout), 2);
+
+    store.resetWorkout(workout);
+    expect(store.completedSets(workout), 0);
+    expect(store.setsFor(workout.id, exercise.id)[0].done, isFalse);
+    expect(store.setsFor(workout.id, exercise.id)[1].done, isFalse);
+  });
+
+  test('сброс тренировки не удаляет историю, веса и настройки', () async {
+    final store = GymStore();
+    await store.init();
+
+    final workout = workouts.first;
+    final exercise = workout.exercises.first;
+
+    store
+      ..updateWeight(workout.id, exercise.id, 0, 50)
+      ..updateReps(workout.id, exercise.id, 0, 10)
+      ..toggleDone(workout.id, exercise.id, 0)
+      ..setUserWeight(75.5);
+
+    store.saveSession(workout);
+    await store.flush();
+
+    expect(store.totalSessions, 1);
+
+    store.resetWorkout(workout);
+
+    expect(store.totalSessions, 1);
+    expect(store.setsFor(workout.id, exercise.id)[0].done, isFalse);
+    expect(store.setsFor(workout.id, exercise.id)[0].weight, 50);
+    expect(store.setsFor(workout.id, exercise.id)[0].reps, 10);
+    expect(store.userWeight, 75.5);
+  });
+
+  test('сброс тренировки уведомляет слушателей', () async {
+    final store = GymStore();
+    await store.init();
+
+    final workout = workouts.first;
+    final exercise = workout.exercises.first;
+
+    store.toggleDone(workout.id, exercise.id, 0);
+
+    bool notified = false;
+    store.addListener(() => notified = true);
+
+    store.resetWorkout(workout);
+    expect(notified, isTrue);
+    expect(store.completedSets(workout), 0);
   });
 }

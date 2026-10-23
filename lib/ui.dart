@@ -57,11 +57,7 @@ class ExerciseImage extends StatelessWidget {
   final Exercise exercise;
   final double size;
 
-  const ExerciseImage({
-    super.key,
-    required this.exercise,
-    required this.size,
-  });
+  const ExerciseImage({super.key, required this.exercise, required this.size});
 
   @override
   Widget build(BuildContext context) {

@@ -135,7 +135,11 @@ class _ArchivePageState extends State<ArchivePage> {
     );
   }
 
-  Widget _buildExercisePhotoCard(String exerciseName, String muscle, String exerciseId) {
+  Widget _buildExercisePhotoCard(
+    String exerciseName,
+    String muscle,
+    String exerciseId,
+  ) {
     return FutureBuilder(
       future: _getPhotoBase64byId(exerciseId),
       builder: (context, snapshot) {
@@ -196,10 +200,7 @@ class _ArchivePageState extends State<ArchivePage> {
                     ),
                     Text(
                       '${_date(session.date)} • ${session.completedSets} подходов • ${session.volume.round()} кг',
-                      style: const TextStyle(
-                        color: textMuted,
-                        fontSize: 11,
-                      ),
+                      style: const TextStyle(color: textMuted, fontSize: 11),
                     ),
                   ],
                 ),
@@ -208,19 +209,14 @@ class _ArchivePageState extends State<ArchivePage> {
           ),
           const SizedBox(height: 12),
           ...session.exercises.map(
-            (se) => _buildExercisePhotoCard(
-              se.name,
-              se.muscle,
-              se.exerciseId,
-            ),
+            (se) => _buildExercisePhotoCard(se.name, se.muscle, se.exerciseId),
           ),
         ],
       ),
     );
   }
 
-  String _date(DateTime d) =>
-      '${d.day}.${d.month}.${d.year}';
+  String _date(DateTime d) => '${d.day}.${d.month}.${d.year}';
 
   @override
   void dispose() {
@@ -235,10 +231,7 @@ class _ArchivePageState extends State<ArchivePage> {
         surfaceTintColor: Colors.transparent,
         title: const Text(
           'Архив прогресса',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: -.3,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -.3),
         ),
       ),
       body: FutureBuilder(
@@ -252,11 +245,7 @@ class _ArchivePageState extends State<ArchivePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.history_rounded,
-                    size: 64,
-                    color: textMuted,
-                  ),
+                  Icon(Icons.history_rounded, size: 64, color: textMuted),
                   const SizedBox(height: 16),
                   Text(
                     'Пусто',
@@ -302,10 +291,7 @@ class _PhotoDeleteButton extends StatelessWidget {
   final VoidCallback onDelete;
   final Widget child;
 
-  const _PhotoDeleteButton({
-    required this.onDelete,
-    required this.child,
-  });
+  const _PhotoDeleteButton({required this.onDelete, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -320,11 +306,7 @@ class _PhotoDeleteButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: const Padding(
             padding: EdgeInsets.all(6),
-            child: Icon(
-              Icons.close_rounded,
-              color: Colors.red,
-              size: 20,
-            ),
+            child: Icon(Icons.close_rounded, color: Colors.red, size: 20),
           ),
         ),
       ),

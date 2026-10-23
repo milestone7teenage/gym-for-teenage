@@ -52,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     }
   }
+
   Future<void> _export(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: store.exportJson()));
     if (context.mounted) {
